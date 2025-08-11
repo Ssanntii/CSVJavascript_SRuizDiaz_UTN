@@ -34,7 +34,7 @@ export class Csv{
     static async listarCsvs(){
         try{
             const f = await dir()
-            const csvs = f.files.filter(file => file.endsWith(".csv"))
+            const csvs = f.files.filter (file => file.endsWith(".csv"))
 
             return { csvs, dirName: f.dirName }
         }
@@ -55,7 +55,7 @@ export class Csv{
             })
             if(!file){
                 console.log("No se encontró el archivo.")
-                return
+                return false
             }
             const data = await fs.readFile(`${dirName}/${file}`, "utf-8")
             let rows = data.split("\n").filter(r => r.trim() !== "")
@@ -114,7 +114,41 @@ export class Csv{
                         console.log(e)
                         return
                     }
-
+                case "update":
+                    try {
+                        const data = await fs.readFile(`${dirName}/${file}`, "utf-8")
+                        const rows = data.split("\n").filter(r => r.trim() !== "" && !r.startsWith("ID,"))
+                        let found = false
+                        const updatedRows = []
+                        for (let row of rows) {
+                            let cols = row.split(",")
+                            if (cols[1].toLowerCase() === producto.toLowerCase()) {
+                                found = true
+                                console.log(`Producto encontrado: ${cols[1]} | Stock: ${cols[2]} | Precio: ${cols[3]}`)
+                                console.log("===============================")
+                                let nuevoStock = await input(`\tNuevo stock (actual: ${cols[2]})\nSi no desea modificarlo, pulse Enter para continuar: `)
+                                if (nuevoStock.trim() === "") nuevoStock = cols[2]
+                                let nuevoPrecio = await input(`\tNuevo precio (actual: ${cols[3]})\nSi no desea modificarlo, pulse Enter para continuar: `)
+                                if (nuevoPrecio.trim() === "") nuevoPrecio = cols[3]
+                                cols[2] = nuevoStock
+                                cols[3] = nuevoPrecio
+                            }
+                            updatedRows.push(cols.join(","))
+                        }
+                        if (!found) {
+                            console.log("No se encontró el producto.")
+                            console.log("===============================")
+                            await input("")
+                        }
+                        await fs.writeFile(`${dirName}/${file}`, `ID,Producto,Stock(U),Precio($)\n${updatedRows.join("\n")}\n`)
+                        console.log("Datos actualizados exitosamente.")
+                        await input("")
+                        break
+                    } catch (e) {
+                        console.log("Error al actualizar los datos.")
+                        console.log(e)
+                        return
+                    }
             }
         }
         catch(e){

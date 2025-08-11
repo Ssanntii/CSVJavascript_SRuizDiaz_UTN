@@ -70,7 +70,7 @@ async function main() {
                         console.clear()
                         console.log("\tAGREGAR DATOS")
                         console.log("===============================")
-                        const signal = await mostrarCsvs()
+                        signal = await mostrarCsvs()
                         console.log("===============================")
                         if (!signal) {
                             await input("")
@@ -83,7 +83,13 @@ async function main() {
                             console.clear()
                             console.log("\tAGREGAR DATOS")
                             console.log("===============================")
-                            await Csv.leerCsv(nAdd)
+                            const exist = await Csv.leerCsv(nAdd)
+                            if (exist === false) {
+                                console.log("===============================")
+                                await input("")
+                                seguir = false
+                                break
+                            }
                             console.log("===============================")
                             console.log("Datos a agregar:")
                             let product = await input("Ingrese el producto: ")
@@ -126,9 +132,31 @@ async function main() {
                         console.clear()
                         console.log("\tACTUALIZAR DATOS")
                         console.log("===============================")
-                        await mostrarCsvs()
+                        const signal = await mostrarCsvs()
                         console.log("===============================")
+                        if (!signal) {
+                            await input("")
+                            break
+                        }
                         let fUp = await input("Ingrese el nombre del archivo: ")
+                        console.clear()
+                        console.log(`\tACTUALIZAR DATOS EN ${fUp.toUpperCase()}`)
+                        console.log("===============================")
+                        const nUp = fUp.toLowerCase().trim().replaceAll(".csv", "")
+                        const exist = await Csv.leerCsv(nUp)
+                        if (exist === false) {
+                            await input("")
+                            break
+                        }
+                        console.log("===============================")
+                        let producto = await input("Ingrese el nombre del producto a actualizar: ")
+                        producto = producto.trim()
+                        producto = producto.charAt(0).toUpperCase() + producto.slice(1).toLowerCase()
+                        console.clear()
+                        console.log(`\tACTUALIZAR DATOS DEL PRODUCTO ${producto.toUpperCase()}`)
+                        console.log("===============================")
+                        // Los valores de stock y precio pueden ser "" para que Csv.actualizarCsv los pida
+                        await Csv.actualizarCsv("update", nUp, producto, "", "")
                         break
                     case "3":
                         console.clear()
