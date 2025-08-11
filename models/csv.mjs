@@ -49,38 +49,39 @@ export class Csv{
         try{
             const { csvs, dirName } = await this.listarCsvs()
             const file = csvs.find(f => {
-            const match = f.match(/^datos_(.+?)_\(\d{1,4}-\d{1,2}-\d{1,4}\)\.csv$/)
-            if (!match) return false
-            return match[1] === nombre
+                const match = f.match(/^datos_(.+?)_\(\d{1,4}-\d{1,2}-\d{1,4}\)\.csv$/)
+                if (!match) return false
+                return match[1] === nombre
             })
             if(!file){
-                console.log("No se encontró el archivo.")
-                return false
+                return "no_existe"
             }
             const data = await fs.readFile(`${dirName}/${file}`, "utf-8")
             let rows = data.split("\n").filter(r => r.trim() !== "")
-            rows = rows.map(r => r.split(","))
-
-            const colWidths = []
-            rows.forEach(row => {
+            if (rows.length <= 1) {
+                return "vacio"
+            }
+            // Mostrar tabla formateada
+            const table = rows.map(r => r.split(","));
+            const colWidths = [];
+            table.forEach(row => {
                 row.forEach((cell, i) => {
-                    colWidths[i] = Math.max(colWidths[i] || 0, cell.length)
-                })
-            })
-
-            rows.forEach((row, idx) => {
-                const line = row.map((cell, i) => cell.padEnd(colWidths[i], " ")).join(" | ")
-                console.log(line)
-
+                    colWidths[i] = Math.max(colWidths[i] || 0, cell.length);
+                });
+            });
+            table.forEach((row, idx) => {
+                const line = row.map((cell, i) => cell.padEnd(colWidths[i], " ")).join(" | ");
+                console.log(line);
                 if (idx === 0) {
-                    const sep = colWidths.map(w => "-".repeat(w)).join("-+-")
-                    console.log(sep)
+                    const sep = colWidths.map(w => "-".repeat(w)).join("-+-");
+                    console.log(sep);
                 }
-            })
+            });
+            return "ok";
         }
         catch(e){
             console.log("No se encontró el archivo.")
-            console.log(e)
+            return "no_existe"
         }
     }
 
@@ -103,7 +104,16 @@ export class Csv{
                         const rows = data.split("\n").filter(r => r.trim() !== "" && !r.startsWith("ID,"))
                         const newId = rows.length ? parseInt(rows[rows.length - 1].split(",")[0]) + 1 : 1
                         const newRow = `${newId},${producto},${stock},${precio}\n`
-
+                        const existe = rows.some(r => r.split(",")[1].toLowerCase() === producto.toLowerCase())
+                        if (existe) {
+                            console.clear()
+                            console.log("\tAGREGAR DATOS")
+                            console.log("===============================")
+                            console.log("Producto ya existente")
+                            console.log("===============================")
+                            await input("")
+                            break
+                        }
                         await fs.appendFile(`${dirName}/${file}`, newRow)
                         console.log("Datos agregados exitosamente.")
                         await input("")
@@ -131,7 +141,7 @@ export class Csv{
                                 let nuevoPrecio = await input(`\tNuevo precio (actual: ${cols[3]})\nSi no desea modificarlo, pulse Enter para continuar: `)
                                 if (nuevoPrecio.trim() === "") nuevoPrecio = cols[3]
                                 cols[2] = nuevoStock
-                                cols[3] = nuevoPrecio
+                                cols[3] = nuevoPrecio.replaceAll("$", "").replaceAll(",", ".")
                             }
                             updatedRows.push(cols.join(","))
                         }
@@ -139,6 +149,7 @@ export class Csv{
                             console.log("No se encontró el producto.")
                             console.log("===============================")
                             await input("")
+                            break
                         }
                         await fs.writeFile(`${dirName}/${file}`, `ID,Producto,Stock(U),Precio($)\n${updatedRows.join("\n")}\n`)
                         console.log("Datos actualizados exitosamente.")
@@ -146,6 +157,30 @@ export class Csv{
                         break
                     } catch (e) {
                         console.log("Error al actualizar los datos.")
+                        console.log(e)
+                        return
+                    }
+                case "delete":
+                    try {
+                        const data = await fs.readFile(`${dirName}/${file}`, "utf-8")
+                        const rows = data.split("\n").filter(r => r.trim() !== "" && !r.startsWith("ID,"))
+
+                        const idEliminar = await input("Ingrese el ID del producto a eliminar: ")
+                        const filteredRows = rows.filter (r => r.split(",")[0] !== idEliminar.trim())
+                        if (filteredRows.length === rows.length) {
+                            console.log("No se encontró un producto con ese ID.")
+                            await input("")
+                            break
+                        }
+                        await fs.writeFile(
+                            `${dirName}/${file}`,
+                            `ID,Producto,Stock(U),Precio($)\n${filteredRows.join("\n")}\n`
+                        )
+                        console.log("Producto eliminado exitosamente.")
+                        await input("")
+                        break
+                    } catch (e) {
+                        console.log("Error al eliminar el producto.")
                         console.log(e)
                         return
                     }

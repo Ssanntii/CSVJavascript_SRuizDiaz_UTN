@@ -29,6 +29,7 @@ async function main() {
 
         const option = await input("Seleccione una opción: ")
 
+        let signal, estado
         switch (option) {
             case "1":
                 console.clear()
@@ -51,7 +52,15 @@ async function main() {
                 console.clear()
                 console.log(`\tTABLA ${nLeer.toUpperCase()}`)
                 console.log("===============================")
-                await Csv.leerCsv(nLeer)
+                estado = await Csv.leerCsv(nLeer)
+                if (estado === "no_existe") {
+                    console.log("===============================")
+                    await input("")
+                    break
+                }
+                if (estado === "vacio") {
+                    console.log("El archivo está vacío.")
+                    }
                 console.log("===============================")
                 await input("")
                 break
@@ -64,7 +73,7 @@ async function main() {
                 console.log("3. Eliminar datos")
                 console.log("4. Volver al menú principal")
                 console.log("===============================")
-                let opcion = await input("Seleccione una opción: ")
+                const opcion = await input("Seleccione una opción: ")
                 switch (opcion) {
                     case "1":
                         console.clear()
@@ -83,18 +92,28 @@ async function main() {
                             console.clear()
                             console.log("\tAGREGAR DATOS")
                             console.log("===============================")
-                            const exist = await Csv.leerCsv(nAdd)
-                            if (exist === false) {
+                            estado = await Csv.leerCsv(nAdd)
+                            if (estado === "no_existe") {
                                 console.log("===============================")
                                 await input("")
-                                seguir = false
                                 break
+                            }
+                            if (estado === "vacio") {
+                                console.log("El archivo está vacío.")
                             }
                             console.log("===============================")
                             console.log("Datos a agregar:")
-                            let product = await input("Ingrese el producto: ")
-                            product = product.trim()
-                            product = product.charAt(0).toUpperCase() + product.slice(1).toLowerCase()
+                            let product;
+                            while (true) {
+                                product = await input("Ingrese el producto: ");
+                                product = product.trim();
+                                // Validar que no contenga números y no esté vacío
+                                if (product !== "" && !/\d/.test(product)) {
+                                    product = product.charAt(0).toUpperCase() + product.slice(1).toLowerCase();
+                                    break;
+                                }
+                                console.log("El nombre del producto no puede contener números ni estar vacío.");
+                            }
                             let stock
                             while (true) {
                                 stock = await input("Ingrese el stock(U): ")
@@ -132,7 +151,7 @@ async function main() {
                         console.clear()
                         console.log("\tACTUALIZAR DATOS")
                         console.log("===============================")
-                        const signal = await mostrarCsvs()
+                        signal = await mostrarCsvs()
                         console.log("===============================")
                         if (!signal) {
                             await input("")
@@ -143,28 +162,65 @@ async function main() {
                         console.log(`\tACTUALIZAR DATOS EN ${fUp.toUpperCase()}`)
                         console.log("===============================")
                         const nUp = fUp.toLowerCase().trim().replaceAll(".csv", "")
-                        const exist = await Csv.leerCsv(nUp)
-                        if (exist === false) {
+                        estado = await Csv.leerCsv(nUp)
+                        if (estado === "no_existe") {
+                            console.log("===============================")
+                            await input("")
+                            break
+                        }
+                        if (estado === "vacio") {
+                            console.log("El archivo está vacío.")
+                            console.log("===============================")
                             await input("")
                             break
                         }
                         console.log("===============================")
-                        let producto = await input("Ingrese el nombre del producto a actualizar: ")
-                        producto = producto.trim()
-                        producto = producto.charAt(0).toUpperCase() + producto.slice(1).toLowerCase()
+                        let product
+                        while (true) {
+                            product = await input("Ingrese el producto: ")
+                            product = product.trim()
+                            if (product !== "" && !/\d/.test(product)) {
+                                product = product.charAt(0).toUpperCase() + product.slice(1).toLowerCase()
+                                break
+                            }
+                            console.log("El nombre del producto no puede contener números ni estar vacío.")
+                        }
                         console.clear()
-                        console.log(`\tACTUALIZAR DATOS DEL PRODUCTO ${producto.toUpperCase()}`)
+                        console.log(`\tACTUALIZAR DATOS DEL PRODUCTO ${product.toUpperCase()}`)
                         console.log("===============================")
                         // Los valores de stock y precio pueden ser "" para que Csv.actualizarCsv los pida
-                        await Csv.actualizarCsv("update", nUp, producto, "", "")
+                        await Csv.actualizarCsv("update", nUp, product, "", "")
                         break
                     case "3":
                         console.clear()
                         console.log("\tELIMINAR DATOS")
                         console.log("===============================")
-                        await mostrarCsvs()
+                        signal = await mostrarCsvs()
                         console.log("===============================")
+                        if (!signal) {
+                            await input("")
+                            break
+                        }
                         let fDel = await input("Ingrese el nombre del archivo: ")
+                        console.clear()
+                        console.log(`\tELIMINAR DATOS DEL ARCHIVO ${fDel.toUpperCase()}`)
+                        console.log("===============================")
+                        const nDel = fDel.toLowerCase().trim().replaceAll(".csv", "")
+                        estado = await Csv.leerCsv(nDel)
+                        if (estado === "no_existe") {
+                            console.log("El archivo no existe.")
+                            console.log("===============================")
+                            await input("")
+                            break
+                        }
+                        if (estado === "vacio") {
+                            console.log("El archivo está vacío.")
+                            console.log("===============================")
+                            await input("")
+                            break
+                        }
+                        console.log("===============================")
+                        await Csv.actualizarCsv("delete", nDel, "", "", "")
                         break
                     case "4":
                         break
@@ -189,6 +245,5 @@ async function main() {
         }
     }
 }
-
 
 main()
