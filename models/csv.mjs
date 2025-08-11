@@ -61,23 +61,22 @@ export class Csv{
             if (rows.length <= 1) {
                 return "vacio"
             }
-            // Mostrar tabla formateada
-            const table = rows.map(r => r.split(","));
-            const colWidths = [];
+            const table = rows.map(r => r.split(","))
+            const colWidths = []
             table.forEach(row => {
                 row.forEach((cell, i) => {
-                    colWidths[i] = Math.max(colWidths[i] || 0, cell.length);
-                });
-            });
+                    colWidths[i] = Math.max(colWidths[i] || 0, cell.length)
+                })
+            })
             table.forEach((row, idx) => {
-                const line = row.map((cell, i) => cell.padEnd(colWidths[i], " ")).join(" | ");
-                console.log(line);
+                const line = row.map((cell, i) => cell.padEnd(colWidths[i], " ")).join(" | ")
+                console.log(line)
                 if (idx === 0) {
                     const sep = colWidths.map(w => "-".repeat(w)).join("-+-");
-                    console.log(sep);
+                    console.log(sep)
                 }
             });
-            return "ok";
+            return "ok"
         }
         catch(e){
             console.log("No se encontró el archivo.")
@@ -192,5 +191,33 @@ export class Csv{
             return
         }
         
+    }
+
+    static async borrarCsv(nombre){
+        try{
+            const { csvs, dirName } = await this.listarCsvs()
+            const file = csvs.find(f => {
+                const match = f.match(/^datos_(.+?)_\(\d{1,4}-\d{1,2}-\d{1,4}\)\.csv$/)
+                if (!match) return false
+                return match[1] === nombre
+            })
+            if (!file) {
+                console.log("No se encontró el archivo.")
+                return
+            }
+            const sure= await input(`¿Está seguro de que desea eliminar el archivo ${file}? (y/n): `) 
+            if (sure.toLowerCase() !== "y") {
+                console.log("Operación cancelada.")
+                await input("")
+                return
+            }
+            await fs.unlink(`${dirName}/${file}`)
+            console.log("Archivo eliminado exitosamente.")
+            await input("")
+        }
+        catch(e){
+            console.log("Error al eliminar el archivo.")
+            console.log(e)
+        }
     }
 }

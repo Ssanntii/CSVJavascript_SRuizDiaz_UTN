@@ -54,6 +54,7 @@ async function main() {
                 console.log("===============================")
                 estado = await Csv.leerCsv(nLeer)
                 if (estado === "no_existe") {
+                    console.log("El archivo no existe.")
                     console.log("===============================")
                     await input("")
                     break
@@ -232,6 +233,18 @@ async function main() {
                 }
                 break
             case "4":
+                console.clear()
+                console.log("\tELIMINAR ARCHIVO")
+                console.log("===============================")
+                signal = await mostrarCsvs()
+                console.log("===============================")
+                if (!signal) {
+                    await input("")
+                    break
+                }
+                let fDel = await input("Ingrese el nombre del archivo: ")
+                const nDel = fDel.toLowerCase().trim().replaceAll(".csv", "")
+                await Csv.borrarCsv(nDel)
                 break
             case "5":
                 console.clear()
