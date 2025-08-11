@@ -1,18 +1,20 @@
 import {input} from "./utils.mjs"
 import {Csv} from "./models/csv.mjs"
 
-
 async function mostrarCsvs() {
-    csvs = await Csv.listarCsvs()
-    if (csvs.length === 0) {
-        console.log("No hay archivos disponibles.")
-        await input("")
-        return
+    const {csvs, dirName} = await Csv.listarCsvs()
+
+    if (!dirName || csvs.length === 0) {
+        console.log("No hay archivos creados.")
+        return false
     }
+
     csvs.forEach((f) => {
-    console.log(f)
+        console.log(f)
     })
+    return true
 }
+
 async function main() {
     while (true){
         console.clear()
@@ -33,6 +35,7 @@ async function main() {
                 console.log("\tCREAR ARCHIVO")
                 console.log("===============================")
                 let crear = await input("Ingrese el nombre del archivo: ")
+                console.log("===============================")
                 const nCrear= crear.toLowerCase().trim().replaceAll(".csv", "").replaceAll(" ", "_")
                 await Csv.crearCsv(nCrear)
                 await input("")
@@ -41,20 +44,15 @@ async function main() {
                 console.clear()
                 console.log("\tLEER ARCHIVO")
                 console.log("===============================")
-                const f = await Csv.listarCsvs()
-                if (f.csvs.length === 0) {
-                    console.log("No hay archivos disponibles.")
-                    await input("")
-                    continue
-                }
-                f.csvs.forEach((f) => {
-                    console.log(f)
-                })
+                await mostrarCsvs()
                 console.log("===============================")
                 let leer = await input("Seleccione el archivo: ")
                 const nLeer = leer.toLowerCase().trim().replaceAll(".csv", "")
                 console.clear()
+                console.log(`\tTABLA ${nLeer.toUpperCase()}`)
+                console.log("===============================")
                 await Csv.leerCsv(nLeer)
+                console.log("===============================")
                 await input("")
                 break
             case "3":
@@ -72,32 +70,63 @@ async function main() {
                         console.clear()
                         console.log("\tAGREGAR DATOS")
                         console.log("===============================")
-                        csvs = await Csv.listarCsvs()
-                        if (csvs.length === 0) {
-                            console.log("No hay archivos disponibles.")
-                            await input("")
-                            continue
-                        }
-                        csvs.forEach((f) => {
-                            console.log(f)
-                        })
+                        const signal = await mostrarCsvs()
                         console.log("===============================")
+                        if (!signal) {
+                            await input("")
+                            break
+                        }
                         let fAdd = await input("Ingrese el nombre del archivo: ")
                         const nAdd = fAdd.toLowerCase().trim().replaceAll(".csv", "")
+                        let seguir = true;
+                        while (seguir) {
+                            console.clear()
+                            console.log("\tAGREGAR DATOS")
+                            console.log("===============================")
+                            await Csv.leerCsv(nAdd)
+                            console.log("===============================")
+                            console.log("Datos a agregar:")
+                            let product = await input("Ingrese el producto: ")
+                            product = product.trim()
+                            product = product.charAt(0).toUpperCase() + product.slice(1).toLowerCase()
+                            let stock
+                            while (true) {
+                                stock = await input("Ingrese el stock(U): ")
+                                stock = stock.trim()
+                                if (stock !== "" && !isNaN(stock)) {
+                                    stock = parseInt(stock)
+                                    break
+                                }
+                                console.log("Stock inválido.")
+                            }
+                            let precio
+                            while (true) {
+                                precio = await input("Ingrese el precio($): ")
+                                precio = precio.trim().replaceAll("$", "").replaceAll(",", ".")
+                                if (precio !== "" && !isNaN(precio)) {
+                                    precio = parseFloat(precio)
+                                    break
+                                }
+                                console.log("Precio inválido.")
+                            }
+                            await Csv.actualizarCsv("add", nAdd, product, stock, precio)
+                            let repetir;
+                            while (true) {
+                                repetir = await input("¿Desea cargar otro dato? (y/n): ")
+                                repetir = repetir.trim().toLowerCase()
+                                if (repetir === "y" || repetir === "n") break
+                                console.log("Opción no válida. Ingrese 'y' para sí o 'n' para no.")
+                            }
+                            if (repetir === "n") {
+                                seguir = false; // Sale del bucle externo
+                            }
+                        }
                         break
                     case "2":
                         console.clear()
                         console.log("\tACTUALIZAR DATOS")
                         console.log("===============================")
-                                                csvs = await Csv.listarCsvs()
-                        if (csvs.length === 0) {
-                            console.log("No hay archivos disponibles.")
-                            await input("")
-                            continue
-                        }
-                        csvs.forEach((f) => {
-                            console.log(f)
-                        })
+                        await mostrarCsvs()
                         console.log("===============================")
                         let fUp = await input("Ingrese el nombre del archivo: ")
                         break
@@ -105,15 +134,7 @@ async function main() {
                         console.clear()
                         console.log("\tELIMINAR DATOS")
                         console.log("===============================")
-                        csvs = await Csv.listarCsvs()
-                        if (csvs.length === 0) {
-                            console.log("No hay archivos disponibles.")
-                            await input("")
-                            continue
-                        }
-                        csvs.forEach((f) => {
-                            console.log(f)
-                        })
+                        await mostrarCsvs()
                         console.log("===============================")
                         let fDel = await input("Ingrese el nombre del archivo: ")
                         break
@@ -123,6 +144,7 @@ async function main() {
                         console.clear()
                         console.log("Opción no válida. Intente de nuevo.")
                         await input("")
+                        break
                 }
                 break
             case "4":
@@ -139,5 +161,6 @@ async function main() {
         }
     }
 }
+
 
 main()
